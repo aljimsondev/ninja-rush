@@ -1,4 +1,11 @@
-import { AnimatedSprite, Assets, Container, Rectangle, Texture } from 'pixi.js';
+import {
+  AnimatedSprite,
+  Assets,
+  Container,
+  Graphics,
+  Rectangle,
+  Texture,
+} from 'pixi.js';
 import { Game } from '../game';
 
 export class Player extends Container {
@@ -7,7 +14,13 @@ export class Player extends Container {
   FRAME_WIDTH = 96;
   FRAME_INDEX = 0;
   spritesheet: any = null;
-
+  grid: Graphics | null = null;
+  hitbox = {
+    x: this.FRAME_WIDTH / 3,
+    y: this.FRAME_HEIGHT * 0.2,
+    width: this.FRAME_WIDTH / 3,
+    height: this.FRAME_HEIGHT - 20,
+  };
   private STATES = {
     ATTACK: 'Attack_1.png',
     ATTACK_2: 'Attack_2.png',
@@ -25,17 +38,15 @@ export class Player extends Container {
   constructor(game: Game) {
     super();
     this.game = game;
-    this.position = {
-      x: 0,
-      y: Math.floor(this.game.app.screen.height / this.height),
-    };
-
     this.render();
+
+    this.y = this.game.app.screen.height / 2 - this.FRAME_HEIGHT;
   }
 
   async render() {
     // load the textures first
     await this.load();
+    this.drawHitBox();
 
     const texture = this.spritesheet.textures[this.STATES.RUN];
 
@@ -46,7 +57,7 @@ export class Player extends Container {
     sprite.animationSpeed = 0.1;
     sprite.play();
 
-    this.game.app.stage.addChild(sprite);
+    this.addChild(sprite);
   }
 
   /**
@@ -110,7 +121,25 @@ export class Player extends Container {
    * Apply updates to the player
    */
   update() {
-    this.position.x += 0.5;
+    // this.x += 0.5;
+  }
+
+  /**
+   * Draw a simple box outline around the player sprite
+   */
+  drawHitBox() {
+    this.grid = new Graphics();
+
+    // Draw a simple rectangle border around the sprite
+    this.grid.rect(
+      this.hitbox.x,
+      this.hitbox.y,
+      this.hitbox.width,
+      this.hitbox.height,
+    );
+    this.grid.stroke({ width: 2, color: 0x00ff00 });
+
+    this.addChild(this.grid);
   }
 }
 
