@@ -17,7 +17,6 @@ export class Game {
     document.getElementById('pixi-container')!.appendChild(this.app.canvas);
 
     const player = new Player(this);
-    player.render();
 
     this.app.stage.addChild(player);
 
@@ -27,6 +26,7 @@ export class Game {
       // * Delta is 1 if running at 100% performance *
       // * Creates frame-independent transformation *
       // bunny.rotation += 0.1 * time.deltaTime;
+      player.update();
     });
   }
 }
