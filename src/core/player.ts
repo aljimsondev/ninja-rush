@@ -1,84 +1,121 @@
 import {
   AnimatedSprite,
-  Assets,
   Container,
   Graphics,
   Rectangle,
   Texture,
 } from 'pixi.js';
-import { Game } from '../game';
+
+interface Entity<T> {
+  textures: T;
+}
+
+enum PlayerStates {
+  'IDLE' = 'IDLE',
+  'WALK' = 'WALK',
+  'RUN' = 'RUN',
+  'HURT' = 'HURT',
+  'DEAD' = 'DEAD',
+  'JUMP' = 'JUMP',
+  'ATTACK' = 'ATTACK',
+  'CAST' = 'CAST',
+  'PROJECTILE' = 'PROJECTILE', // for the weapon he cast
+}
+
+// each entity state and its corresponding texture
+type EntityTexture = {
+  [K in PlayerStates]: Texture;
+};
+
+type PlayerState = keyof typeof PlayerStates;
+
+interface PlayerEntity extends Entity<EntityTexture> {
+  showHitbox?: boolean;
+}
 
 export class Player extends Container {
-  private game: Game;
   FRAME_HEIGHT = 96;
   FRAME_WIDTH = 96;
-  FRAME_INDEX = 0;
-  spritesheet: any = null;
   grid: Graphics | null = null;
+  speed: number = 1;
+  textures: EntityTexture;
+  direction = {
+    x: 0,
+    y: 0,
+  };
+  // the spritesheet animation texture for the animation rendered
+  animationTexture: Texture | null = null;
+  sprite: any;
+  frames: any[] = [];
   hitbox = {
     x: this.FRAME_WIDTH / 3,
     y: this.FRAME_HEIGHT * 0.2,
     width: this.FRAME_WIDTH / 3,
     height: this.FRAME_HEIGHT - 20,
   };
-  private STATES = {
-    ATTACK: 'Attack_1.png',
-    ATTACK_2: 'Attack_2.png',
-    BLADE: 'Blade.png',
-    CAST: 'Cast.png',
-    DEAD: 'Dead.png',
-    IDLE: 'Idle.png',
-    HURT: 'Hurt.png',
-    JUMP: 'Jump.png',
-    KUNAI: 'Kunai.png',
-    RUN: 'Run.png',
-    WALK: 'Walk.png',
-  };
 
-  constructor(game: Game) {
+  // controls the animationTexture state
+  STATE: PlayerState = 'IDLE';
+
+  constructor({ textures }: PlayerEntity) {
     super();
-    this.game = game;
-    this.render();
+    this.textures = textures;
 
-    this.y = this.game.app.screen.height / 2 - this.FRAME_HEIGHT;
+    this.render();
   }
 
-  async render() {
+  render() {
     // load the textures first
-    await this.load();
     this.drawHitBox();
 
-    const texture = this.spritesheet.textures[this.STATES.RUN];
+    this.frames = this.getAnimationFrames();
 
-    const frames = this.getAnimationFrames(texture);
+    this.sprite = new AnimatedSprite(this.frames, true);
 
-    const sprite = new AnimatedSprite(frames, true);
+    this.sprite.animationSpeed = 0.1;
 
-    sprite.animationSpeed = 0.1;
-    sprite.play();
+    this.sprite.play();
 
-    this.addChild(sprite);
+    this.addChild(this.sprite);
   }
 
+  private getTexture() {
+    return this.textures[this.STATE];
+  }
   /**
-   * Get animation frames from the given texture
+   * Get animation frames from the animationTexture value
    * @param texture
    * @returns
    */
-  getAnimationFrames(texture: Texture): Texture[] {
+  getAnimationFrames(): Texture[] {
     const frames: Texture[] = [];
 
-    const maxFrame = this.getMaxFrame(texture);
+    const maxFrame = this.getMaxFrame();
 
     for (let i = 0; i < maxFrame; i++) {
-      frames[i] = this.getFrameTextureByIndex(texture, i);
+      frames[i] = this.getFrameTextureByIndex(i);
     }
 
     return frames;
   }
 
-  getFrameTextureByIndex(texture: Texture, index: number) {
+  setState(state: PlayerState) {
+    // prevent updating state when it is already updated to the same state
+    if (this.STATE === state) return;
+    this.STATE = state;
+
+    const texture = this.getTexture();
+
+    this.sprite.texture = texture;
+    this.frames = this.getAnimationFrames();
+    console.log(this.sprite.texture);
+  }
+
+  getFrameTextureByIndex(index: number): Texture {
     // Create a rectangle defining the frame area
+    const texture = this.getTexture();
+
+    // create frame by the given texture
     const frame = new Rectangle(
       texture.frame.x + index * this.FRAME_WIDTH,
       texture.frame.y,
@@ -92,36 +129,40 @@ export class Player extends Container {
       frame: frame,
     });
   }
-  /**
-   * Load assets
-   */
-
-  async load() {
-    const sheetTexture = await Assets.load('src/assets/ninja/monk.png');
-
-    Assets.add({
-      alias: 'monk',
-      src: 'src/assets/ninja/monk.json',
-      data: { texture: sheetTexture }, // using of preloaded texture
-    });
-
-    this.spritesheet = await Assets.load('monk');
-  }
 
   /**
    * Get the maximum frame of the texture
    * @param texture
    * @returns
    */
-  getMaxFrame(texture: Texture) {
+  getMaxFrame() {
+    const texture = this.getTexture();
+
     return Math.floor(texture.frame.width / this.FRAME_WIDTH);
   }
 
-  /**
-   * Apply updates to the player
-   */
-  update() {
-    // this.x += 0.5;
+  moveRight() {
+    this.direction.x = this.speed;
+    this.setState('WALK');
+  }
+  stopMovement() {
+    this.direction.x = 0;
+    this.setState('IDLE');
+  }
+  moveLeft() {
+    this.direction.x = -this.speed;
+  }
+  moveUp() {
+    this.direction.y = -this.speed;
+  }
+  moveDown() {
+    this.direction.y = this.speed;
+  }
+  stopFreeFall() {
+    this.direction.y = 0;
+  }
+  jump() {
+    // todo jump functionality
   }
 
   /**
@@ -141,9 +182,17 @@ export class Player extends Container {
 
     this.addChild(this.grid);
   }
-}
 
-export interface Entity {
-  renderModel: () => void;
-  update: () => void;
+  setPosition(position: { x: number; y: number }) {
+    this.x = position.x;
+    this.y = position.y;
+  }
+
+  /**
+   * Apply updates to the player
+   */
+  update() {
+    this.x += this.direction.x;
+    this.y += this.direction.y;
+  }
 }
