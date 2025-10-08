@@ -5,33 +5,12 @@ import {
   Rectangle,
   Texture,
 } from 'pixi.js';
+import { EntityTexture, PlayerEntity, PlayerState } from './types';
 
-interface Entity<T> {
-  textures: T;
-}
-
-enum PlayerStates {
-  'IDLE' = 'IDLE',
-  'WALK' = 'WALK',
-  'RUN' = 'RUN',
-  'HURT' = 'HURT',
-  'DEAD' = 'DEAD',
-  'JUMP' = 'JUMP',
-  'ATTACK' = 'ATTACK',
-  'CAST' = 'CAST',
-  'PROJECTILE' = 'PROJECTILE', // for the weapon he cast
-}
-
-// each entity state and its corresponding texture
-type EntityTexture = {
-  [K in PlayerStates]: Texture;
-};
-
-type PlayerState = keyof typeof PlayerStates;
-
-interface PlayerEntity extends Entity<EntityTexture> {
-  showHitbox?: boolean;
-}
+// things to consider
+// 1. animation should not depend on key press, but a separate state for better control of behaviour
+// 2. state should listen the keys that was actively press while making other state, e.g. when player is running he can jump while in running state and continue to the running state on land if the run key still pressed
+// 3. center the camera, the player position is fix, while he can navigate jump, walk, run and other stuff
 
 export class Player extends Container {
   // assets configuration
@@ -63,6 +42,10 @@ export class Player extends Container {
   jumpStrength = 10; // how strong the jump is
   onGround = true; // whether the player is grounded
   groundY = 300; // arbitrary ground level (change to your tilemap height)
+
+  jumpDuration = 0; // total jump time in frames or ms
+  jumpElapsed = 0; // how long we’ve been jumping
+  isJumping = false;
 
   // State
   STATE: PlayerState = 'IDLE';
@@ -159,6 +142,7 @@ export class Player extends Container {
     this.setState('ATTACK');
   }
   moveRight() {
+    if (this.STATE === 'JUMP' && !this.isOnGround()) return;
     this.direction.x = this.speed * 2;
     this.setState('RUN');
   }
@@ -173,14 +157,16 @@ export class Player extends Container {
     this.setState('IDLE');
   }
   stopMovement() {
+    if (this.STATE === 'JUMP' && !this.isOnGround()) return;
     if (this.isOnGround()) {
       this.direction.x = 0;
     }
     this.setState('IDLE');
   }
   moveLeft() {
+    if (this.isJumping) return;
     this.direction.x = -this.speed;
-    this.setState('JUMP');
+    this.setState('RUN');
   }
   moveUp() {
     this.direction.y = -this.speed;
@@ -194,19 +180,25 @@ export class Player extends Container {
   applyGravity() {
     if (!this.isOnGround()) {
       this.velocityY += this.gravity; // pull down
+    } else {
+      this.isJumping = false;
     }
   }
 
   jump() {
-    // todo jump functionality
     if (this.isOnGround()) {
-      // adjust animation speed according to the pull of the gravity
-
-      this.velocityY = -this.jumpStrength; // go up
+      this.velocityY = -this.jumpStrength;
       this.onGround = false;
+      this.isJumping = true;
+      this.jumpElapsed = 0;
 
-      this.setState('JUMP'); // update new state
-      // this.sprite.animationSpeed = 1;
+      // Estimate total jump duration based on strength & gravity
+      // Rough physics formula: t = (2 * v) / g
+      this.jumpDuration = (2 * this.jumpStrength) / this.gravity;
+
+      // Play jump animation once
+      this.setState('JUMP');
+      this.sprite.loop = false;
     }
   }
 
@@ -241,6 +233,27 @@ export class Player extends Container {
     this.y += this.velocityY;
 
     this.applyGravity();
+
+    // Handle jump animation syncing
+    if (this.isJumping && this.sprite && this.STATE === 'JUMP') {
+      this.jumpElapsed++;
+
+      const progress = Math.min(this.jumpElapsed / this.jumpDuration, 1);
+      const totalFrames = this.sprite.totalFrames;
+
+      // Interpolate frame progress based on jump physics
+      this.sprite.gotoAndStop(Math.floor(progress * (totalFrames - 1)));
+
+      if (progress >= 1 || this.onGround) {
+        this.isJumping = false;
+        this.setState('IDLE');
+        this.stopMovement();
+      }
+    }
+    // handle moving
+    if (this.STATE === 'IDLE') {
+      this.direction.x = 0;
+    }
   }
   isOnGround() {
     return this.y >= this.groundY;
