@@ -7,7 +7,8 @@ export class Game {
   world: Container;
   isPaused: boolean = false;
   controller: Controller;
-  player: Player;
+  player: Player = {} as any;
+  groundThreshold: number = 0;
 
   constructor() {
     this.app = new Application();
@@ -57,12 +58,17 @@ export class Game {
   async exec() {
     // run game load
     await this.load();
-
+    if (!this.player) console.warn('Player is not initialized!');
     // set the initial player position
     this.player.setPosition({
       y: this.app.screen.height / 2 - this.player.FRAME_HEIGHT,
       x: 0,
     });
+
+    this.player.setGroundY(
+      this.app.screen.height / 2 - this.player.FRAME_HEIGHT,
+    );
+
     // add the player container to the app state
     this.app.stage.addChild(this.player);
 
@@ -73,11 +79,19 @@ export class Game {
       // * Delta is 1 if running at 100% performance *
       // * Creates frame-independent transformation *
       // bunny.rotation += 0.1 * time.deltaTime;
-      this.player.update();
+      this.player!.update();
+
+      if (
+        this.player.y >=
+        this.app.screen.height / 2 - this.player.FRAME_HEIGHT
+      ) {
+        this.player.y = this.app.screen.height / 2 - this.player.FRAME_HEIGHT;
+      }
     });
   }
 
   pausePlay() {
     this.isPaused = !this.isPaused;
   }
+  isOutOfbounds() {}
 }

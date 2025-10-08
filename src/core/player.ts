@@ -34,19 +34,22 @@ interface PlayerEntity extends Entity<EntityTexture> {
 }
 
 export class Player extends Container {
+  // assets configuration
   FRAME_HEIGHT = 96;
   FRAME_WIDTH = 96;
   grid: Graphics | null = null;
-  speed: number = 1;
   textures: EntityTexture;
+  sprite: any;
+
+  // player attribute
+  speed: number = 1;
+
+  // movement direction
   direction = {
     x: 0,
     y: 0,
   };
-  // the spritesheet animation texture for the animation rendered
-  animationTexture: Texture | null = null;
-  sprite: any;
-  frames: any[] = [];
+  // player hitbox
   hitbox = {
     x: this.FRAME_WIDTH / 3,
     y: this.FRAME_HEIGHT * 0.2,
@@ -54,8 +57,16 @@ export class Player extends Container {
     height: this.FRAME_HEIGHT - 20,
   };
 
-  // controls the animationTexture state
+  // --- physics
+  gravity = 0.2; // how strong gravity pulls down
+  velocityY = 0; // current vertical speed
+  jumpStrength = 10; // how strong the jump is
+  onGround = true; // whether the player is grounded
+  groundY = 300; // arbitrary ground level (change to your tilemap height)
+
+  // State
   STATE: PlayerState = 'IDLE';
+  LAST_STATE: PlayerState = 'IDLE'; // reference what the last action user used
 
   constructor({ textures }: PlayerEntity) {
     super();
@@ -68,9 +79,9 @@ export class Player extends Container {
     // load the textures first
     this.drawHitBox();
 
-    this.frames = this.getAnimationFrames();
+    const frames = this.getAnimationFrames();
 
-    this.sprite = new AnimatedSprite(this.frames, true);
+    this.sprite = new AnimatedSprite(frames, true);
 
     this.sprite.animationSpeed = 0.1;
 
@@ -102,6 +113,7 @@ export class Player extends Container {
   setState(state: PlayerState) {
     // prevent updating state when it is already updated to the same state
     if (this.STATE === state) return;
+
     this.STATE = state;
 
     const newFrames = this.getAnimationFrames();
@@ -111,6 +123,9 @@ export class Player extends Container {
     this.sprite.gotoAndPlay(0); // ✅ restart animation
   }
 
+  setGroundY(value: number) {
+    this.groundY = value;
+  }
   getFrameTextureByIndex(index: number): Texture {
     // Create a rectangle defining the frame area
     const texture = this.getTexture();
@@ -140,13 +155,27 @@ export class Player extends Container {
 
     return Math.floor(texture.frame.width / this.FRAME_WIDTH);
   }
-
+  attack() {
+    this.setState('ATTACK');
+  }
   moveRight() {
+    this.direction.x = this.speed * 2;
+    this.setState('RUN');
+  }
+  throwProjectile() {
+    this.setState('CAST');
+  }
+  moveSlowly() {
     this.direction.x = this.speed;
     this.setState('WALK');
   }
+  idle() {
+    this.setState('IDLE');
+  }
   stopMovement() {
-    this.direction.x = 0;
+    if (this.isOnGround()) {
+      this.direction.x = 0;
+    }
     this.setState('IDLE');
   }
   moveLeft() {
@@ -162,8 +191,23 @@ export class Player extends Container {
   stopFreeFall() {
     this.direction.y = 0;
   }
+  applyGravity() {
+    if (!this.isOnGround()) {
+      this.velocityY += this.gravity; // pull down
+    }
+  }
+
   jump() {
     // todo jump functionality
+    if (this.isOnGround()) {
+      // adjust animation speed according to the pull of the gravity
+
+      this.velocityY = -this.jumpStrength; // go up
+      this.onGround = false;
+
+      this.setState('JUMP'); // update new state
+      // this.sprite.animationSpeed = 1;
+    }
   }
 
   /**
@@ -194,6 +238,14 @@ export class Player extends Container {
    */
   update() {
     this.x += this.direction.x;
-    this.y += this.direction.y;
+    this.y += this.velocityY;
+
+    this.applyGravity();
+  }
+  isOnGround() {
+    return this.y >= this.groundY;
+  }
+  isMoving() {
+    return this.direction.x !== 0;
   }
 }

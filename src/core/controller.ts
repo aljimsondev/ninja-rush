@@ -11,8 +11,13 @@ export class Controller {
     document.addEventListener('keydown', (e) => {
       switch (e.code) {
         case 'Escape':
-          console.log('toggle pause/play');
           this.game.pausePlay();
+          break;
+        case 'KeyE':
+          this.game.player.attack();
+          break;
+        case 'KeyQ':
+          this.game.player.throwProjectile();
           break;
         case 'KeyA':
           this.game.player.moveLeft();
@@ -27,7 +32,7 @@ export class Controller {
           this.game.player.moveDown();
           break;
         case 'Space':
-          console.log('Enable jump method');
+          this.game.player.jump();
           break;
         default:
           break;
@@ -44,6 +49,7 @@ export class Controller {
           this.game.player.stopMovement();
           break;
         default:
+          // this.game.player.idle();
           break;
       }
     });
