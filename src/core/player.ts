@@ -104,11 +104,11 @@ export class Player extends Container {
     if (this.STATE === state) return;
     this.STATE = state;
 
-    const texture = this.getTexture();
+    const newFrames = this.getAnimationFrames();
 
-    this.sprite.texture = texture;
-    this.frames = this.getAnimationFrames();
-    console.log(this.sprite.texture);
+    this.sprite.textures = newFrames; // apply new frames
+
+    this.sprite.gotoAndPlay(0); // ✅ restart animation
   }
 
   getFrameTextureByIndex(index: number): Texture {
@@ -151,6 +151,7 @@ export class Player extends Container {
   }
   moveLeft() {
     this.direction.x = -this.speed;
+    this.setState('JUMP');
   }
   moveUp() {
     this.direction.y = -this.speed;
