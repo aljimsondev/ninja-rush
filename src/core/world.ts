@@ -20,11 +20,24 @@ const blocks = [
     x: 3,
     y: 0,
   },
+  {
+    x: 4,
+    y: 0,
+  },
+  {
+    x: 5,
+    y: 0,
+  },
+  {
+    x: 6,
+    y: 0,
+  },
 ];
 
 export class World extends Container {
   config: Config;
   player: Player = {} as any;
+  GROUND = 400;
   constructor() {
     super();
     this.config = new Config({ blockSize: 48 });
@@ -63,15 +76,14 @@ export class World extends Container {
         WALK: textures['Walk.png'],
       },
     });
-    // set the initial player position
-    // this.player.setPosition({
-    //   y: this.app.screen.height / 2 - this.player.FRAME_HEIGHT,
-    //   x: 0,
-    // });
 
-    // this.player.setGroundY(
-    //   this.app.screen.height / 2 - this.player.FRAME_HEIGHT,
-    // );
+    // set the initial player position
+    this.player.setPosition({
+      y: this.GROUND,
+      x: 0,
+    });
+
+    this.player.setGroundY(this.GROUND);
 
     this.addChild(this.player);
   }
@@ -85,7 +97,7 @@ export class World extends Container {
       const pos = blocks[i];
 
       block.x = pos.x * this.config.blockSize;
-      block.y = pos.y * this.config.blockSize;
+      block.y = this.GROUND + this.config.blockSize * 2;
 
       block.drawBox(this.config.blockSize, this.config.blockSize);
 
@@ -95,11 +107,8 @@ export class World extends Container {
   update() {
     this.player.update();
 
-    // if (
-    //   this.player.y >=
-    //   this.app.screen.height / 2 - this.player.FRAME_HEIGHT
-    // ) {
-    //   this.player.y = this.app.screen.height / 2 - this.player.FRAME_HEIGHT;
-    // }
+    if (this.player.y >= this.GROUND) {
+      this.player.y = this.GROUND;
+    }
   }
 }
