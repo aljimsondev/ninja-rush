@@ -1,19 +1,20 @@
-import { Application, Assets, Container } from 'pixi.js';
+import { Application } from 'pixi.js';
+import { Config } from './core/config';
 import { Controller } from './core/controller';
-import { Player } from './core/player';
+import { World } from './core/world';
 
 export class Game {
   app: Application;
-  world: Container;
+  world: World;
   isPaused: boolean = false;
   controller: Controller;
-  player: Player = {} as any;
-  groundThreshold: number = 0;
+  config: Config;
 
   constructor() {
     this.app = new Application();
-    this.world = new Container();
+    this.world = new World();
     this.controller = new Controller(this);
+    this.config = new Config();
   }
   /**
    * Loads the game states, assets, etc.
@@ -25,52 +26,22 @@ export class Game {
     // Append the application canvas to the document body
     document.getElementById('pixi-container')!.appendChild(this.app.canvas);
 
-    // loads the player assets
-
-    const sheetTexture = await Assets.load('src/assets/ninja/monk.png');
-
-    Assets.add({
-      alias: 'monk',
-      src: 'src/assets/ninja/monk.json',
-      data: { texture: sheetTexture }, // using of preloaded texture
-    });
-
-    const playerSpritesheet = await Assets.load('monk');
-
-    const textures = playerSpritesheet.textures;
-
-    // load the player instance
-    this.player = new Player({
-      textures: {
-        ATTACK: textures['Attack_1.png'],
-        CAST: textures['Cast.png'],
-        DEAD: textures['Dead.png'],
-        HURT: textures['Hurt.png'],
-        IDLE: textures['Idle.png'],
-        JUMP: textures['Jump.png'],
-        PROJECTILE: textures['Kunai.png'],
-        RUN: textures['Run.png'],
-        WALK: textures['Walk.png'],
-      },
-    });
+    // load world
+    await this.world.load();
   }
 
   async exec() {
     // run game load
     await this.load();
-    if (!this.player) console.warn('Player is not initialized!');
-    // set the initial player position
-    this.player.setPosition({
-      y: this.app.screen.height / 2 - this.player.FRAME_HEIGHT,
-      x: 0,
-    });
 
-    this.player.setGroundY(
-      this.app.screen.height / 2 - this.player.FRAME_HEIGHT,
-    );
+    // draw world
+    this.world.draw();
 
-    // add the player container to the app state
-    this.app.stage.addChild(this.player);
+    // run the controller listener after all resources loaded making sure that all entity is available
+    this.controller.listen();
+
+    // add world to the stage
+    this.app.stage.addChild(this.world);
 
     // Listen for animate update
     this.app.ticker.add((time) => {
@@ -79,19 +50,18 @@ export class Game {
       // * Delta is 1 if running at 100% performance *
       // * Creates frame-independent transformation *
       // bunny.rotation += 0.1 * time.deltaTime;
-      this.player!.update();
+      // this.player.update();
 
-      if (
-        this.player.y >=
-        this.app.screen.height / 2 - this.player.FRAME_HEIGHT
-      ) {
-        this.player.y = this.app.screen.height / 2 - this.player.FRAME_HEIGHT;
-      }
+      // if (
+      //   this.player.y >=
+      //   this.app.screen.height / 2 - this.player.FRAME_HEIGHT
+      // ) {
+      //   this.player.y = this.app.screen.height / 2 - this.player.FRAME_HEIGHT;
+      // }
     });
   }
 
   pausePlay() {
     this.isPaused = !this.isPaused;
   }
-  isOutOfbounds() {}
 }

@@ -4,35 +4,36 @@ export class Controller {
   game: Game;
   constructor(game: Game) {
     this.game = game;
-    this.listen();
   }
 
   listen() {
+    const player = this.game.world.player;
+
     document.addEventListener('keydown', (e) => {
       switch (e.code) {
         case 'Escape':
           this.game.pausePlay();
           break;
         case 'KeyE':
-          this.game.player.attack();
+          player.attack();
           break;
         case 'KeyQ':
-          this.game.player.throwProjectile();
+          player.throwProjectile();
           break;
         case 'KeyA':
-          this.game.player.moveLeft();
+          player.moveLeft();
           break;
         case 'KeyD':
-          this.game.player.moveRight();
+          player.moveRight();
           break;
         case 'KeyW':
-          this.game.player.moveUp();
+          player.moveUp();
           break;
         case 'KeyS':
-          this.game.player.moveDown();
+          player.moveDown();
           break;
         case 'Space':
-          this.game.player.jump();
+          player.jump();
           break;
         default:
           break;
@@ -43,10 +44,10 @@ export class Controller {
     document.addEventListener('keyup', (e) => {
       switch (e.code) {
         case 'KeyA':
-          this.game.player.stopMovement();
+          player.stopMovement();
           break;
         case 'KeyD':
-          this.game.player.stopMovement();
+          player.stopMovement();
           break;
         default:
           // this.game.player.idle();

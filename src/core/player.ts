@@ -42,6 +42,9 @@ export class Player extends Container {
   jumpStrength = 10; // how strong the jump is
   onGround = true; // whether the player is grounded
   groundY = 300; // arbitrary ground level (change to your tilemap height)
+  acceleration = 2; // for accelerating player speed
+  deceleration = 2; // for deceleration
+  maxSpeed = 10;
 
   jumpDuration = 0; // total jump time in frames or ms
   jumpElapsed = 0; // how long we’ve been jumping
