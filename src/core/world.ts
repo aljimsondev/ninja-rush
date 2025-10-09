@@ -12,7 +12,7 @@ export class World extends Container {
 
   constructor() {
     super();
-    this.config = new Config({ blockSize: 48 });
+    this.config = new Config();
   }
   // load assets and others
   async load() {
@@ -112,7 +112,8 @@ export class World extends Container {
 
       block.x = pos.x * this.config.blockSize;
       block.y = pos.y;
-
+      block.blockSize = this.config.blockSize;
+      block.drawHitBox(this, 2); // add offset for visualization
       mapTiles[i] = block;
     }
     // assign world tiles
@@ -124,7 +125,7 @@ export class World extends Container {
     this.player.render();
 
     for (const tile of this.tiles) {
-      tile.drawBox(this.config.blockSize, this.config.blockSize);
+      tile.drawBox();
       this.addChild(tile);
     }
   }

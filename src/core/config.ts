@@ -3,7 +3,7 @@ export interface ConfigOptions {
 }
 
 export class Config {
-  blockSize = 48;
+  blockSize = 24;
   constructor({ blockSize = 48 }: ConfigOptions = {}) {
     this.blockSize = blockSize;
   }

@@ -16,6 +16,8 @@ export class Block extends Container {
   //   texture: Texture;
   sprite: Sprite;
   state: BlockState = 'SOLID';
+  blockSize: number = 0;
+
   constructor({ texture, state = 'SOLID' }: BlockOptions) {
     super();
     // this.texture = texture;
@@ -23,25 +25,30 @@ export class Block extends Container {
     this.sprite = new Sprite({ texture: texture });
   }
 
-  drawBox(height: number, width: number) {
+  drawBox() {
     const shape = new Graphics();
 
     // Draw a simple rectangle border around the sprite
-    shape.rect(0, 0, width, height);
+    shape.rect(0, 0, this.blockSize, this.blockSize);
     shape.stroke({ width: 2, color: 0x00ff00 });
 
     this.addChild(shape);
   }
 
-  drawHitBox() {
+  drawHitBox(world: World, offset: number = 0) {
     const shape = new Graphics();
-    const bound = this.getHitbox();
+    const bound = this.getHitboxGlobal();
 
     // Draw a simple rectangle border around the sprite
-    shape.rect(bound.x, bound.y, this.width, this.height);
+    shape.rect(
+      bound.x + offset,
+      bound.y + offset,
+      this.blockSize,
+      this.blockSize,
+    );
     shape.stroke({ width: 2, color: 'red' });
 
-    this.addChild(shape);
+    world.addChild(shape);
   }
 
   getHitboxGlobal() {
@@ -50,8 +57,8 @@ export class Block extends Container {
     return {
       x: global.x,
       y: global.y,
-      width: 48,
-      height: 48,
+      width: this.blockSize,
+      height: this.blockSize,
     };
   }
 
@@ -64,14 +71,5 @@ export class Block extends Container {
     shape.stroke({ width: 2, color: 'orange' });
 
     world.addChild(shape);
-  }
-
-  getHitbox() {
-    return {
-      x: this.x,
-      y: this.y,
-      width: this.width,
-      height: this.height,
-    };
   }
 }
