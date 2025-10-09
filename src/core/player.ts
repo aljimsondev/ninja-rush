@@ -6,6 +6,7 @@ import {
   Texture,
 } from 'pixi.js';
 import { EntityTexture, PlayerEntity, PlayerState } from './types';
+import { World } from './world';
 
 // things to consider
 // 1. animation should not depend on key press, but a separate state for better control of behaviour
@@ -57,8 +58,6 @@ export class Player extends Container {
   constructor({ textures }: PlayerEntity) {
     super();
     this.textures = textures;
-
-    this.render();
   }
 
   render() {
@@ -172,13 +171,13 @@ export class Player extends Container {
     this.setState('RUN');
   }
   moveUp() {
-    this.direction.y = -this.speed;
+    this.velocityY = -this.speed;
   }
   moveDown() {
-    this.direction.y = this.speed;
+    this.velocityY = this.speed;
   }
   stopFreeFall() {
-    this.direction.y = 0;
+    this.velocityY = 0;
   }
   applyGravity() {
     if (!this.isOnGround()) {
@@ -222,6 +221,26 @@ export class Player extends Container {
 
     this.addChild(this.grid);
   }
+  getHitBoxGlobal() {
+    const global = this.toGlobal({ x: this.hitbox.x, y: this.hitbox.y });
+
+    return {
+      x: global.x,
+      y: global.y,
+      width: this.hitbox.width,
+      height: this.hitbox.height,
+    };
+  }
+
+  drawBoundingBox(world: World) {
+    const bound = this.getHitBoxGlobal();
+
+    const box = new Graphics();
+
+    box.rect(bound.x, bound.y, bound.width, bound.height);
+    box.stroke({ width: 2, color: 'red' });
+    world.addChild(box);
+  }
 
   setPosition(position: { x: number; y: number }) {
     this.x = position.x;
@@ -235,7 +254,7 @@ export class Player extends Container {
     this.x += this.direction.x;
     this.y += this.velocityY;
 
-    this.applyGravity();
+    // this.applyGravity();
 
     // Handle jump animation syncing
     if (this.isJumping && this.sprite && this.STATE === 'JUMP') {
@@ -250,7 +269,7 @@ export class Player extends Container {
       if (progress >= 1 || this.onGround) {
         this.isJumping = false;
         this.setState('IDLE');
-        this.stopMovement();
+        // this.stopMovement();
       }
     }
     // handle moving
@@ -258,10 +277,14 @@ export class Player extends Container {
       this.direction.x = 0;
     }
   }
+
   isOnGround() {
     return this.y >= this.groundY;
   }
   isMoving() {
     return this.direction.x !== 0;
+  }
+  getHitbox() {
+    return this.hitbox;
   }
 }

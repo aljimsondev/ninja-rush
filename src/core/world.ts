@@ -1,43 +1,15 @@
 import { Assets, Container } from 'pixi.js';
+import { aabbIntersect } from '../utils/aabbIntersect';
 import { Block } from './block';
 import { Config } from './config';
 import { Player } from './player';
-
-const blocks = [
-  {
-    x: 0,
-    y: 0,
-  },
-  {
-    x: 1,
-    y: 0,
-  },
-  {
-    x: 2,
-    y: 0,
-  },
-  {
-    x: 3,
-    y: 0,
-  },
-  {
-    x: 4,
-    y: 0,
-  },
-  {
-    x: 5,
-    y: 0,
-  },
-  {
-    x: 6,
-    y: 0,
-  },
-];
 
 export class World extends Container {
   config: Config;
   player: Player = {} as any;
   GROUND = 400;
+  tiles: Block[] = [];
+
   constructor() {
     super();
     this.config = new Config({ blockSize: 48 });
@@ -45,6 +17,7 @@ export class World extends Container {
   // load assets and others
   async load() {
     await this.loadPlayer();
+    this.loadMap();
   }
 
   async loadPlayer() {
@@ -88,27 +61,85 @@ export class World extends Container {
     this.addChild(this.player);
   }
 
-  draw() {
-    for (let i = 0; i < blocks.length; i++) {
+  loadMap() {
+    const map = [
+      {
+        x: 0,
+        y: this.GROUND + this.config.blockSize * 2,
+      },
+      {
+        x: 1,
+        y: this.GROUND + this.config.blockSize * 2,
+      },
+      {
+        x: 2,
+        y: this.GROUND + this.config.blockSize * 2,
+      },
+      {
+        x: 3,
+        y: this.GROUND + this.config.blockSize * 2,
+      },
+      {
+        x: 4,
+        y: this.GROUND + this.config.blockSize * 2,
+      },
+      {
+        x: 5,
+        y: this.GROUND + this.config.blockSize * 2,
+      },
+      {
+        x: 6,
+        y: this.GROUND + this.config.blockSize * 2,
+      },
+      {
+        x: 7,
+        y: this.GROUND + this.config.blockSize * 2,
+      },
+      {
+        x: 7,
+        y: this.GROUND + this.config.blockSize,
+      },
+    ];
+
+    const mapTiles: Block[] = [];
+    // replace with the tilemap
+    for (let i = 0; i < map.length; i++) {
       const block = new Block({
         state: 'SOLID',
       });
 
-      const pos = blocks[i];
+      const pos = map[i];
 
       block.x = pos.x * this.config.blockSize;
-      block.y = this.GROUND + this.config.blockSize * 2;
+      block.y = pos.y;
 
-      block.drawBox(this.config.blockSize, this.config.blockSize);
+      mapTiles[i] = block;
+    }
+    // assign world tiles
+    this.tiles = mapTiles;
+  }
 
-      this.addChild(block);
+  // draw the world tiles
+  draw() {
+    this.player.render();
+
+    for (const tile of this.tiles) {
+      tile.drawBox(this.config.blockSize, this.config.blockSize);
+      this.addChild(tile);
     }
   }
+
   update() {
     this.player.update();
 
-    if (this.player.y >= this.GROUND) {
-      this.player.y = this.GROUND;
+    for (const tile of this.tiles) {
+      const playerBox = this.player.getHitBoxGlobal();
+      const blockBox = tile.getHitboxGlobal();
+
+      if (aabbIntersect(playerBox, blockBox)) {
+        // this.resolveCollision(this.player, block);
+        console.log('Collision occur');
+      }
     }
   }
 }

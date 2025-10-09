@@ -50,7 +50,9 @@ export class Controller {
           player.stopMovement();
           break;
         default:
-          // this.game.player.idle();
+          player.idle();
+          player.stopMovement();
+          player.stopFreeFall();
           break;
       }
     });
