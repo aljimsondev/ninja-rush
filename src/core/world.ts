@@ -2,6 +2,7 @@ import { Assets, Container } from 'pixi.js';
 import { aabbIntersect } from '../utils/aabbIntersect';
 import { Block } from './block';
 import { Config } from './config';
+import { Controller } from './controller';
 import { Player } from './player';
 
 export class World extends Container {
@@ -9,10 +10,12 @@ export class World extends Container {
   player: Player = {} as any;
   GROUND = 400;
   tiles: Block[] = [];
+  controller: Controller;
 
-  constructor() {
+  constructor(controller: Controller) {
     super();
     this.config = new Config();
+    this.controller = controller;
   }
   // load assets and others
   async load() {
@@ -48,6 +51,7 @@ export class World extends Container {
         RUN: textures['Run.png'],
         WALK: textures['Walk.png'],
       },
+      controller: this.controller,
     });
 
     // set the initial player position
@@ -130,8 +134,8 @@ export class World extends Container {
     }
   }
 
-  update() {
-    this.player.update();
+  update(deltaTime: number) {
+    this.player.update(deltaTime);
 
     for (const tile of this.tiles) {
       const playerBox = this.player.getHitBoxGlobal();

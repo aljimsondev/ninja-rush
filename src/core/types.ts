@@ -1,4 +1,5 @@
 import { Texture } from 'pixi.js';
+import { Controller } from './controller';
 
 export interface Entity<T> {
   textures: T;
@@ -25,4 +26,5 @@ export type PlayerState = keyof typeof PlayerStates;
 
 export interface PlayerEntity extends Entity<EntityTexture> {
   showHitbox?: boolean;
+  controller: Controller;
 }

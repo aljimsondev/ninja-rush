@@ -5,6 +5,7 @@ import {
   Rectangle,
   Texture,
 } from 'pixi.js';
+import { Controller } from './controller';
 import { EntityTexture, PlayerEntity, PlayerState } from './types';
 import { World } from './world';
 
@@ -14,6 +15,8 @@ import { World } from './world';
 // 3. center the camera, the player position is fix, while he can navigate jump, walk, run and other stuff
 
 export class Player extends Container {
+  // controller
+  controller: Controller;
   // assets configuration
   FRAME_HEIGHT = 96;
   FRAME_WIDTH = 96;
@@ -23,6 +26,10 @@ export class Player extends Container {
 
   // player attribute
   speed: number = 1;
+  maxRunSpeed = 5;
+  maxWalkSpeed = 2;
+  runAccelerationFactor = 0.05; // extra acceleration multiplier
+  currentMaxSpeed = this.speed;
 
   // movement direction
   direction = {
@@ -40,12 +47,13 @@ export class Player extends Container {
   // --- physics
   gravity = 0.2; // how strong gravity pulls down
   velocityY = 0; // current vertical speed
+  velocityX = 0;
+  friction = 0.2;
   jumpStrength = 10; // how strong the jump is
   onGround = true; // whether the player is grounded
   groundY = 300; // arbitrary ground level (change to your tilemap height)
   acceleration = 2; // for accelerating player speed
   deceleration = 2; // for deceleration
-  maxSpeed = 10;
 
   jumpDuration = 0; // total jump time in frames or ms
   jumpElapsed = 0; // how long we’ve been jumping
@@ -55,9 +63,10 @@ export class Player extends Container {
   STATE: PlayerState = 'IDLE';
   LAST_STATE: PlayerState = 'IDLE'; // reference what the last action user used
 
-  constructor({ textures }: PlayerEntity) {
+  constructor({ textures, controller }: PlayerEntity) {
     super();
     this.textures = textures;
+    this.controller = controller;
   }
 
   render() {
@@ -96,6 +105,19 @@ export class Player extends Container {
   }
 
   setState(state: PlayerState) {
+    // prevent updating state when it is already updated to the same state
+    if (this.STATE === state) return;
+
+    this.STATE = state;
+
+    const newFrames = this.getAnimationFrames();
+
+    this.sprite.textures = newFrames; // apply new frames
+
+    this.sprite.gotoAndPlay(0); // ✅ restart animation
+  }
+
+  setAnimationState(state: PlayerState) {
     // prevent updating state when it is already updated to the same state
     if (this.STATE === state) return;
 
@@ -250,9 +272,53 @@ export class Player extends Container {
   /**
    * Apply updates to the player
    */
-  update() {
-    this.x += this.direction.x;
-    this.y += this.velocityY;
+  update(delta: number) {
+    // Reset horizontal movement
+    this.direction.x = 0;
+
+    // update player movement
+    if (this.controller.keys['right'].doubleTap) {
+      this.setAnimationState('RUN');
+      this.direction.x = this.speed;
+    } else if (this.controller.keys['right'].pressed) {
+      this.direction.x = this.speed;
+      this.setAnimationState('WALK');
+    } else if (this.controller.keys['left'].pressed) {
+      this.direction.x = -this.speed;
+      // todo reverse the sprite making appearing it to turn left
+      this.setAnimationState('WALK');
+    } else {
+      this.setAnimationState('IDLE');
+    }
+
+    if (this.direction.x !== 0) {
+      // Gradually accelerate
+      this.velocityX += this.direction.x * this.acceleration * delta;
+
+      // Smooth momentum buildup: if you keep holding the key, increase max speed slowly
+      this.currentMaxSpeed += this.runAccelerationFactor * delta;
+
+      // Clamp to overall maxRunSpeed
+      this.currentMaxSpeed = Math.min(this.currentMaxSpeed, this.maxRunSpeed);
+
+      // Clamp actual velocity
+      if (Math.abs(this.velocityX) > this.currentMaxSpeed)
+        this.velocityX = this.direction.x * this.currentMaxSpeed;
+    } else {
+      // No input — apply deceleration / friction
+      if (Math.abs(this.velocityX) > 0.05) {
+        const sign = Math.sign(this.velocityX);
+
+        this.velocityX -= sign * this.deceleration * delta;
+      } else {
+        this.velocityX = 0;
+        this.currentMaxSpeed = this.maxWalkSpeed; // reset momentum
+      }
+    }
+
+    // apply physics
+    // this.x += this.direction.x;
+    // this.y += this.velocityY;
 
     // this.applyGravity();
 
@@ -276,6 +342,9 @@ export class Player extends Container {
     if (this.STATE === 'IDLE') {
       this.direction.x = 0;
     }
+
+    // Apply movement
+    this.x += this.velocityX;
   }
 
   isOnGround() {

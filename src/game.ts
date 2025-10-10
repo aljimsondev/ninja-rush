@@ -11,9 +11,10 @@ export class Game {
   config: Config;
 
   constructor() {
+    this.controller = new Controller();
     this.app = new Application();
-    this.world = new World();
-    this.controller = new Controller(this);
+    this.world = new World(this.controller);
+
     this.config = new Config();
   }
   /**
@@ -37,16 +38,13 @@ export class Game {
     // draw world
     this.world.draw();
 
-    // run the controller listener after all resources loaded making sure that all entity is available
-    this.controller.listen();
-
     // add world to the stage
     this.app.stage.addChild(this.world);
 
     // Listen for animate update
     this.app.ticker.add((time) => {
       if (this.isPaused) return;
-      this.world.update();
+      this.world.update(time.deltaTime);
       // Just for fun, let's rotate mr rabbit a little.
       // * Delta is 1 if running at 100% performance *
       // * Creates frame-independent transformation *
