@@ -53,14 +53,14 @@ export class World extends Container {
       },
       controller: this.controller,
     });
-
+    const initialGround = this.GROUND + this.player.FRAME_HEIGHT / 2;
     // set the initial player position
     this.player.setPosition({
-      y: this.GROUND,
+      y: initialGround,
       x: 0,
     });
 
-    this.player.setGroundY(this.GROUND);
+    this.player.setGroundY(initialGround);
 
     this.addChild(this.player);
   }

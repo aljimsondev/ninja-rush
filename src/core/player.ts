@@ -28,7 +28,7 @@ export class Player extends Container {
   // player attribute
   speed: number = 1;
   maxRunSpeed = 5;
-  maxWalkSpeed = 3;
+  maxWalkSpeed = 2;
   runAccelerationFactor = 0.05; // extra acceleration multiplier
   currentMaxSpeed = this.speed;
   topSpeed: number = 0;
@@ -40,8 +40,8 @@ export class Player extends Container {
   };
   // player hitbox
   hitbox = {
-    x: this.FRAME_WIDTH / 3,
-    y: this.FRAME_HEIGHT * 0.2,
+    x: -20,
+    y: -28,
     width: this.FRAME_WIDTH / 3,
     height: this.FRAME_HEIGHT - 20,
   };
@@ -50,12 +50,11 @@ export class Player extends Container {
   gravity = 0.2; // how strong gravity pulls down
   velocityY = 0; // current vertical speed
   velocityX = 0;
-  friction = 0.2;
   jumpStrength = 10; // how strong the jump is
   onGround = true; // whether the player is grounded
   groundY = 300; // arbitrary ground level (change to your tilemap height)
-  acceleration = 2; // for accelerating player speed
-  deceleration = 2; // for deceleration
+  acceleration = 0.8; // for accelerating player speed
+  deceleration = 0.25; // for deceleration
 
   jumpDuration = 0; // total jump time in frames or ms
   jumpElapsed = 0; // how long we’ve been jumping
@@ -81,6 +80,8 @@ export class Player extends Container {
 
     this.sprite.animationSpeed = 0.1;
 
+    this.sprite.anchor.set(0.5, 0.5); // centers the origin
+
     this.sprite.play();
 
     this.addChild(this.sprite);
@@ -104,19 +105,6 @@ export class Player extends Container {
     }
 
     return frames;
-  }
-
-  setState(state: PlayerState) {
-    // prevent updating state when it is already updated to the same state
-    if (this.STATE === state) return;
-
-    this.STATE = state;
-
-    const newFrames = this.getAnimationFrames();
-
-    this.sprite.textures = newFrames; // apply new frames
-
-    this.sprite.gotoAndPlay(0); // ✅ restart animation
   }
 
   setAnimationState(state: PlayerState) {
@@ -165,46 +153,49 @@ export class Player extends Container {
     return Math.floor(texture.frame.width / this.FRAME_WIDTH);
   }
   walk(initialSpeed: number) {
+    // only play walk animation when player is on ground
+    if (!this.isJumping) {
+      this.setAnimationState('WALK');
+    }
+
+    // positive value: sprite is right facing
+    if (initialSpeed > 0) {
+      this.inverseSprite(1);
+    } else {
+      this.inverseSprite(-1);
+    }
+
     this.direction.x = initialSpeed;
-    this.setState('WALK');
+
     this.topSpeed = this.maxWalkSpeed;
   }
 
-  run() {
-    this.direction.x = this.speed;
-    this.setState('RUN');
+  run(direction: number) {
+    if (!this.isJumping) {
+      this.setAnimationState('RUN');
+    }
+
+    this.direction.x = direction;
     this.topSpeed = this.maxRunSpeed;
   }
+
   attack() {
-    this.setState('ATTACK');
+    this.setAnimationState('ATTACK');
   }
-  moveRight() {
-    if (this.STATE === 'JUMP' && !this.isOnGround()) return;
-    this.direction.x = this.speed * 2;
-    this.setState('RUN');
-  }
+
   throwProjectile() {
-    this.setState('CAST');
+    this.setAnimationState('CAST');
   }
   moveSlowly() {
     this.direction.x = this.speed;
-    this.setState('WALK');
+    this.setAnimationState('WALK');
   }
+
   idle() {
-    this.setState('IDLE');
+    this.setAnimationState('IDLE');
+    this.direction.x = 0;
   }
-  stopMovement() {
-    if (this.STATE === 'JUMP' && !this.isOnGround()) return;
-    if (this.isOnGround()) {
-      this.direction.x = 0;
-    }
-    this.setState('IDLE');
-  }
-  moveLeft() {
-    if (this.isJumping) return;
-    this.direction.x = -this.speed;
-    this.setState('RUN');
-  }
+
   moveUp() {
     this.velocityY = -this.speed;
   }
@@ -223,6 +214,10 @@ export class Player extends Container {
   }
 
   jump() {
+    // Play jump animation once
+    this.setAnimationState('JUMP');
+    this.sprite.loop = false;
+
     if (this.isOnGround()) {
       this.velocityY = -this.jumpStrength;
       this.onGround = false;
@@ -232,10 +227,6 @@ export class Player extends Container {
       // Estimate total jump duration based on strength & gravity
       // Rough physics formula: t = (2 * v) / g
       this.jumpDuration = (2 * this.jumpStrength) / this.gravity;
-
-      // Play jump animation once
-      this.setState('JUMP');
-      this.sprite.loop = false;
     }
   }
 
@@ -282,29 +273,39 @@ export class Player extends Container {
     this.y = position.y;
   }
 
+  inverseSprite(direction: -1 | 1) {
+    if (direction > 0) {
+      this.sprite.scale.x = Math.abs(this.sprite.scale.x);
+    } else {
+      this.sprite.scale.x = -Math.abs(this.sprite.scale.x);
+    }
+  }
+
   /**
    * Apply updates to the player
    */
   update(ticker: Ticker) {
-    // Reset horizontal movement
     const delta = ticker.deltaTime;
-    this.direction.x = 0;
 
     // update player movement and animation
     if (this.controller.keys['right'].doubleTap) {
-      this.run();
+      this.run(this.speed);
+    } else if (this.controller.keys['left'].doubleTap) {
+      this.run(-this.speed);
     } else if (this.controller.keys['right'].pressed) {
       this.walk(this.speed);
     } else if (this.controller.keys['left'].pressed) {
       this.walk(-this.speed);
     } else {
-      this.setAnimationState('IDLE');
+      if (!this.isJumping) {
+        this.idle();
+      }
     }
-
     if (this.controller.keys['jump'].pressed) {
       this.jump();
     }
 
+    // --- ACCELERATION ---
     if (this.direction.x !== 0) {
       // Gradually accelerate
       this.velocityX += this.direction.x * (this.acceleration * delta);
@@ -319,14 +320,14 @@ export class Player extends Container {
       if (Math.abs(this.velocityX) > this.currentMaxSpeed)
         this.velocityX = this.direction.x * this.currentMaxSpeed;
     } else {
-      // No input — apply deceleration / friction
       if (Math.abs(this.velocityX) > 0.05) {
         const sign = Math.sign(this.velocityX);
+        this.velocityX -= sign * (this.deceleration * delta);
 
-        this.velocityX -= sign * this.deceleration * delta;
+        // Prevent overshoot
+        if (Math.sign(this.velocityX) !== sign) this.velocityX = 0;
       } else {
         this.velocityX = 0;
-        this.currentMaxSpeed = this.topSpeed; // reset momentum
       }
     }
 
@@ -342,25 +343,19 @@ export class Player extends Container {
 
       if (progress >= 1 || this.onGround) {
         this.isJumping = false;
-        this.setState('IDLE');
+        this.setAnimationState('IDLE');
         // this.stopMovement();
       }
     }
 
-    // Apply movement
+    this.applyGravity();
+
+    // Apply position updates
     this.x += this.velocityX;
     this.y += this.velocityY;
-
-    this.applyGravity();
   }
 
   isOnGround() {
     return this.y >= this.groundY;
-  }
-  isMoving() {
-    return this.direction.x !== 0;
-  }
-  getHitbox() {
-    return this.hitbox;
   }
 }
