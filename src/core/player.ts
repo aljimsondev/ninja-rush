@@ -208,16 +208,10 @@ export class Player extends Container {
   applyGravity() {
     if (!this.isOnGround()) {
       this.velocityY += this.gravity; // pull down
-    } else {
-      this.isJumping = false;
     }
   }
 
   jump() {
-    // Play jump animation once
-    this.setAnimationState('JUMP');
-    this.sprite.loop = false;
-
     if (this.isOnGround()) {
       this.velocityY = -this.jumpStrength;
       this.onGround = false;
@@ -227,6 +221,10 @@ export class Player extends Container {
       // Estimate total jump duration based on strength & gravity
       // Rough physics formula: t = (2 * v) / g
       this.jumpDuration = (2 * this.jumpStrength) / this.gravity;
+
+      // Play jump animation once
+      this.setAnimationState('JUMP');
+      this.sprite.loop = false;
     }
   }
 
@@ -343,8 +341,6 @@ export class Player extends Container {
 
       if (progress >= 1 || this.onGround) {
         this.isJumping = false;
-        this.setAnimationState('IDLE');
-        // this.stopMovement();
       }
     }
 
