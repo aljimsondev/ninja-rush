@@ -4,6 +4,7 @@ import {
   Graphics,
   Rectangle,
   Texture,
+  Ticker,
 } from 'pixi.js';
 import { Controller } from './controller';
 import { EntityTexture, PlayerEntity, PlayerState } from './types';
@@ -272,8 +273,9 @@ export class Player extends Container {
   /**
    * Apply updates to the player
    */
-  update(delta: number) {
+  update(ticker: Ticker) {
     // Reset horizontal movement
+    const delta = ticker.deltaTime;
     this.direction.x = 0;
 
     // update player movement

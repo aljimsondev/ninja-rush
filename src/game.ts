@@ -42,9 +42,9 @@ export class Game {
     this.app.stage.addChild(this.world);
 
     // Listen for animate update
-    this.app.ticker.add((time) => {
+    this.app.ticker.add((ticker) => {
       if (this.isPaused) return;
-      this.world.update(time.deltaTime);
+      this.world.update(ticker);
       // Just for fun, let's rotate mr rabbit a little.
       // * Delta is 1 if running at 100% performance *
       // * Creates frame-independent transformation *

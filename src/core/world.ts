@@ -1,4 +1,4 @@
-import { Assets, Container } from 'pixi.js';
+import { Assets, Container, Ticker } from 'pixi.js';
 import { aabbIntersect } from '../utils/aabbIntersect';
 import { Block } from './block';
 import { Config } from './config';
@@ -134,8 +134,8 @@ export class World extends Container {
     }
   }
 
-  update(deltaTime: number) {
-    this.player.update(deltaTime);
+  update(ticker: Ticker) {
+    this.player.update(ticker);
 
     for (const tile of this.tiles) {
       const playerBox = this.player.getHitBoxGlobal();
