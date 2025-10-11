@@ -111,6 +111,12 @@ export class Player extends Container {
     // prevent updating state when it is already updated to the same state
     if (this.STATE === state) return;
 
+    if (state !== 'JUMP') {
+      this.sprite.loop = true;
+    } else {
+      this.sprite.loop = false;
+    }
+
     this.STATE = state;
 
     const newFrames = this.getAnimationFrames();
@@ -231,7 +237,6 @@ export class Player extends Container {
 
       // Play jump animation once
       this.setAnimationState('JUMP');
-      this.sprite.loop = false;
     }
   }
 
@@ -359,6 +364,6 @@ export class Player extends Container {
   }
 
   isOnGround() {
-    return this.y >= this.groundY;
+    return this.onGround;
   }
 }

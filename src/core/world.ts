@@ -103,6 +103,14 @@ export class World extends Container {
         x: 7,
         y: this.GROUND + this.config.blockSize,
       },
+      {
+        x: 12,
+        y: this.GROUND + this.config.blockSize,
+      },
+      {
+        x: 13,
+        y: this.GROUND + this.config.blockSize,
+      },
     ];
 
     const mapTiles: Block[] = [];
@@ -142,9 +150,30 @@ export class World extends Container {
       const blockBox = tile.getHitboxGlobal();
 
       if (aabbIntersect(playerBox, blockBox)) {
-        // this.resolveCollision(this.player, block);
-        console.log('Collision occur');
+        this.resolveCollision(this.player, tile);
       }
     }
+  }
+
+  resolveCollision(player: Player, block: Block) {
+    const p = player.getHitBoxGlobal();
+    const b = block.getHitboxGlobal();
+
+    // Vertical collision (landing)
+    if (p.y + p.height > b.y && p.y < b.y) {
+      player.y = b.y - player.hitbox.height - player.hitbox.y;
+      player.onGround = true;
+    }
+
+    if (p.x + p.width > b.x) {
+      console.log('right side overlap');
+    }
+    // // Horizontal collision
+    // if (p.x + p.width > b.x && p.x < b.x + b.width) {
+    //   // if (player.direction.x > 0) player.x = b.x - player.hitbox.width;
+    //   // else if (player.direction.x < 0)
+    //   //   player.x = b.x + b.width + player.hitbox.x;
+    //   // player.direction.x = 0;
+    // }
   }
 }
