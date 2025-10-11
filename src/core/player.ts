@@ -28,9 +28,10 @@ export class Player extends Container {
   // player attribute
   speed: number = 1;
   maxRunSpeed = 5;
-  maxWalkSpeed = 2;
+  maxWalkSpeed = 3;
   runAccelerationFactor = 0.05; // extra acceleration multiplier
   currentMaxSpeed = this.speed;
+  topSpeed: number = 0;
 
   // movement direction
   direction = {
@@ -163,6 +164,17 @@ export class Player extends Container {
 
     return Math.floor(texture.frame.width / this.FRAME_WIDTH);
   }
+  walk(initialSpeed: number) {
+    this.direction.x = initialSpeed;
+    this.setState('WALK');
+    this.topSpeed = this.maxWalkSpeed;
+  }
+
+  run() {
+    this.direction.x = this.speed;
+    this.setState('RUN');
+    this.topSpeed = this.maxRunSpeed;
+  }
   attack() {
     this.setState('ATTACK');
   }
@@ -278,30 +290,30 @@ export class Player extends Container {
     const delta = ticker.deltaTime;
     this.direction.x = 0;
 
-    // update player movement
+    // update player movement and animation
     if (this.controller.keys['right'].doubleTap) {
-      this.setAnimationState('RUN');
-      this.direction.x = this.speed;
+      this.run();
     } else if (this.controller.keys['right'].pressed) {
-      this.direction.x = this.speed;
-      this.setAnimationState('WALK');
+      this.walk(this.speed);
     } else if (this.controller.keys['left'].pressed) {
-      this.direction.x = -this.speed;
-      // todo reverse the sprite making appearing it to turn left
-      this.setAnimationState('WALK');
+      this.walk(-this.speed);
     } else {
       this.setAnimationState('IDLE');
     }
 
+    if (this.controller.keys['jump'].pressed) {
+      this.jump();
+    }
+
     if (this.direction.x !== 0) {
       // Gradually accelerate
-      this.velocityX += this.direction.x * this.acceleration * delta;
+      this.velocityX += this.direction.x * (this.acceleration * delta);
 
       // Smooth momentum buildup: if you keep holding the key, increase max speed slowly
       this.currentMaxSpeed += this.runAccelerationFactor * delta;
 
       // Clamp to overall maxRunSpeed
-      this.currentMaxSpeed = Math.min(this.currentMaxSpeed, this.maxRunSpeed);
+      this.currentMaxSpeed = Math.min(this.currentMaxSpeed, this.topSpeed);
 
       // Clamp actual velocity
       if (Math.abs(this.velocityX) > this.currentMaxSpeed)
@@ -314,15 +326,9 @@ export class Player extends Container {
         this.velocityX -= sign * this.deceleration * delta;
       } else {
         this.velocityX = 0;
-        this.currentMaxSpeed = this.maxWalkSpeed; // reset momentum
+        this.currentMaxSpeed = this.topSpeed; // reset momentum
       }
     }
-
-    // apply physics
-    // this.x += this.direction.x;
-    // this.y += this.velocityY;
-
-    // this.applyGravity();
 
     // Handle jump animation syncing
     if (this.isJumping && this.sprite && this.STATE === 'JUMP') {
@@ -340,13 +346,12 @@ export class Player extends Container {
         // this.stopMovement();
       }
     }
-    // handle moving
-    if (this.STATE === 'IDLE') {
-      this.direction.x = 0;
-    }
 
     // Apply movement
     this.x += this.velocityX;
+    this.y += this.velocityY;
+
+    this.applyGravity();
   }
 
   isOnGround() {
