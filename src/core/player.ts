@@ -175,6 +175,13 @@ export class Player extends Container {
       this.setAnimationState('RUN');
     }
 
+    // positive value: sprite is right facing
+    if (direction > 0) {
+      this.inverseSprite(1);
+    } else {
+      this.inverseSprite(-1);
+    }
+
     this.direction.x = direction;
     this.topSpeed = this.maxRunSpeed;
   }
